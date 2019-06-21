@@ -10,7 +10,7 @@
 
 microk8s_ip = "192.168.51.101"
 eirini_version = "master"
-k8s_version = "1.15/stable"
+k8s_version = "1.14/stable"
 eirini_dir = "/home/vagrant/eirini"
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
 
@@ -19,7 +19,7 @@ scripts_common = <<~'SHELL'
   trap exit_message EXIT
 
   echo_yellow () {
-    message=$@
+    local message=$@
     echo -e "\e[1;93m${message}\e[0m"
   }
 
@@ -100,7 +100,7 @@ Vagrant.configure("2") do |config|
 
         # Enable privileged containers
         microk8s.stop
-        echo '--allow-privileged=true' | tee -a /var/snap/microk8s/current/args/kube-apiserver
+        echo '--allow-privileged=true' | tee -a /var/snap/microk8s/current/args/{kubelet,kube-apiserver}
       }
 
       generate_bits_certificate () {
@@ -136,7 +136,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision "shell", name: "user", privileged: false do |s|
-    s.args = [microk8s_ip, eirini_version, eirini_dir, dns_forwarders.join(" ")]
+    s.args = [microk8s_ip, eirini_version, eirini_dir, dns_forwarders.to_s]
 
     s.inline = scripts_common + <<~'SHELL'
       MICROK8S_IP=$1
@@ -147,10 +147,10 @@ Vagrant.configure("2") do |config|
       DONE_DIR="$EIRINI_DIR/done"
 
       configure_dns_forwarders () {
-        # Update coredns settings
+        # Update kube-dns settings
         local dns_patch
-        dns_patch=$(kubectl -n kube-system get configmap/coredns -o jsonpath='{.data.Corefile}' | sed "s/\(forward .\) 8.8.8.8 8.8.4.4/\1 $DNS_FORWARDERS/" | jq -sR '{"data":{"Corefile":.}}')
-        kubectl -n kube-system patch configmap/coredns --type merge -p "$dns_patch"
+        dns_patch=$(jq -nsR --arg forwarders "$DNS_FORWARDERS" '{"data":{"upstreamNameservers":$forwarders}}')
+        kubectl -n kube-system patch configmap/kube-dns --type merge -p "$dns_patch"
       }
 
       deploy_heapster () {
@@ -206,7 +206,9 @@ Vagrant.configure("2") do |config|
         BITS_TLS_KEY="$(cat bits_tls.key)"
 
         helm repo add bits https://cloudfoundry-incubator.github.io/bits-service-release/helm
-        helm install eirini/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "eirini.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "eirini.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}" --set "sizing.locket.capabilities={ALL}"
+
+        git clone -b "$EIRINI_VERSION" https://github.com/cloudfoundry-incubator/eirini-release
+        helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "eirini.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "eirini.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}" --set "sizing.locket.capabilities={ALL}"
 
         local admin_pass
         admin_pass=$(kubectl -n scf get secrets secrets -o jsonpath='{.data.cluster-admin-password}' | base64 -d)
