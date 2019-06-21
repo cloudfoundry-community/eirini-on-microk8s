@@ -64,13 +64,11 @@ Vagrant.configure("2") do |config|
       EIRINI_DIR=$3
 
       DONE_DIR="$EIRINI_DIR/done"
-      mkdir -p "$DONE_DIR"
-      chown vagrant:vagrant "$DONE_DIR"
 
       prepare () {
         # Prepare directory
-        mkdir -p "$EIRINI_DIR"
-        chown vagrant:vagrant "$EIRINI_DIR"
+        mkdir -p "$EIRINI_DIR" "$DONE_DIR"
+        chown vagrant:vagrant "$EIRINI_DIR" "$DONE_DIR"
 
         # Install some utils
         export DEBIAN_FRONTEND=noninteractive
