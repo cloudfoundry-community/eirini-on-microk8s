@@ -105,14 +105,12 @@ Vagrant.configure("2") do |config|
 
       generate_bits_certificate () {
         # Generate self-signed certificate for registry and install on the host vm
-        if [[ ! -f "$EIRINI_DIR/bits_tls.crt" ]]; then
-          openssl req -x509 -newkey rsa:4096 -keyout "$EIRINI_DIR/bits_tls.key" -out "$EIRINI_DIR/bits_tls.crt" -days 3650 -nodes \
-            -subj "/C=XX/ST=XXXX/L=XXXX/O=XXXX/OU=XXXX/CN=registry.$MICROK8S_IP.nip.io/emailAddress=microk8s@example.com" 2>&1 | tr '\n' ' '
-          # Have to install the certificage before containerd starts
-          cp "$EIRINI_DIR/bits_tls.crt" /usr/local/share/ca-certificates/
-          update-ca-certificates
-          chown vagrant:vagrant "$EIRINI_DIR/bits_tls.key" "$EIRINI_DIR/bits_tls.crt"
-        fi
+        openssl req -x509 -newkey rsa:4096 -keyout "$EIRINI_DIR/bits_tls.key" -out "$EIRINI_DIR/bits_tls.crt" -days 3650 -nodes \
+          -subj "/C=XX/ST=XXXX/L=XXXX/O=XXXX/OU=XXXX/CN=registry.$MICROK8S_IP.nip.io/emailAddress=microk8s@example.com" 2>&1 | tr '\n' ' '
+        # Have to install the certificage before containerd starts
+        cp "$EIRINI_DIR/bits_tls.crt" /usr/local/share/ca-certificates/
+        update-ca-certificates
+        chown vagrant:vagrant "$EIRINI_DIR/bits_tls.key" "$EIRINI_DIR/bits_tls.crt"
       }
 
       start_microk8s () {
@@ -155,12 +153,10 @@ Vagrant.configure("2") do |config|
 
       deploy_heapster () {
         # Install heapster
-        if [[ ! -d heapster ]]; then
-            git clone https://github.com/kubernetes-retired/heapster
-            pushd heapster/deploy
-                ./kube.sh start
-            popd
-        fi
+        git clone https://github.com/kubernetes-retired/heapster
+        pushd heapster/deploy
+            ./kube.sh start
+        popd
       }
 
       helm_init () {
@@ -174,20 +170,18 @@ Vagrant.configure("2") do |config|
         # Install Eirini
         ## Get values.yaml and replace placeholders
         ## FIXME: Templating here pleeeaaassseee
-        if [[ ! -f values.yaml ]]; then
-            curl -s https://raw.githubusercontent.com/cloudfoundry-incubator/eirini-release/master/values.yaml -o values.yaml
-            sed -i "s/<worker-node-ip>/$MICROK8S_IP/g
-                    s/<your-storage-class>/microk8s-hostpath/g
-                    s/\(CLUSTER_ADMIN_PASSWORD:\) REPLACE/\1 $(pwgen -nc 12)/
-                    s/\(UAA_ADMIN_CLIENT_SECRET:\) REPLACE/\1 $(pwgen -nc 12)/
-                    s/\(BLOBSTORE_PASSWORD: &BLOBSTORE_PASSWORD\) \"REPLACE\"/\1 $(pwgen -nc 12)/
-                    s/\(BITS_SERVICE_SECRET:\) REPLACE/\1 $(pwgen -nc 12)/
-                    s/\(BITS_SERVICE_SIGNING_USER_PASSWORD:\) REPLACE/\1 $(pwgen -nc 12)/
-                    s/\(ENABLE_OPI_STAGING:\) false/\1 true/
-                   " values.yaml
-            cat values.yaml
-            echo
-        fi
+        curl -s https://raw.githubusercontent.com/cloudfoundry-incubator/eirini-release/master/values.yaml -o values.yaml
+        sed -i "s/<worker-node-ip>/$MICROK8S_IP/g
+                s/<your-storage-class>/microk8s-hostpath/g
+                s/\(CLUSTER_ADMIN_PASSWORD:\) REPLACE/\1 $(pwgen -nc 12)/
+                s/\(UAA_ADMIN_CLIENT_SECRET:\) REPLACE/\1 $(pwgen -nc 12)/
+                s/\(BLOBSTORE_PASSWORD: &BLOBSTORE_PASSWORD\) \"REPLACE\"/\1 $(pwgen -nc 12)/
+                s/\(BITS_SERVICE_SECRET:\) REPLACE/\1 $(pwgen -nc 12)/
+                s/\(BITS_SERVICE_SIGNING_USER_PASSWORD:\) REPLACE/\1 $(pwgen -nc 12)/
+                s/\(ENABLE_OPI_STAGING:\) false/\1 true/
+               " values.yaml
+        cat values.yaml
+        echo
       }
 
       deploy_uaa () {
