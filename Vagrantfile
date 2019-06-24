@@ -142,6 +142,26 @@ Vagrant.configure("2") do |config|
 
       DONE_DIR="$EIRINI_DIR/done"
 
+      kubectl () {
+        local kubectl_cmd counter
+        kubectl_cmd=$(which kubectl)
+
+        # Make sure the API server is up and running
+        local retries=5
+        for ((counter=1; counter<=retries; counter++)); do
+          if "$kubectl_cmd" version > /dev/null; then
+            break
+          else
+            sleep 1
+            echo "Retrying connection to the API server ($counter / $retries) ..." >&2
+            continue
+          fi
+          return 1
+        done
+
+        "$kubectl_cmd" "$@"
+      }
+
       configure_dns_forwarders () {
         # Update kube-dns settings
         local dns_patch
@@ -153,7 +173,7 @@ Vagrant.configure("2") do |config|
         # Install heapster
         git clone https://github.com/kubernetes-retired/heapster
         pushd heapster/deploy
-            ./kube.sh start
+          ./kube.sh start
         popd
       }
 
