@@ -53,6 +53,7 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |v|
     v.cpus = 4
     v.memory = 8192
+    v.customize ["storagectl", :id, "--name", "SCSI", "--hostiocache", "on"]
   end
 
   config.vm.provision "shell", name: "system" do |s|
