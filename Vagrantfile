@@ -116,9 +116,10 @@ Vagrant.configure("2") do |config|
         # Start microk8s
         microk8s.start
 
-        # Enable dns and storage
+        # Enable dns, storage and metrics-server
         microk8s.enable storage
         microk8s.enable dns
+        #microk8s.enable metrics-server
       }
 
       main () {
@@ -179,10 +180,8 @@ Vagrant.configure("2") do |config|
       }
 
       helm_init () {
-        # Initialize helm (this will deploy tiller to k8s)
-        helm init --history-max 200
-        # Wait for tiller to start
-        kubectl -n kube-system wait pods -l app=helm,name=tiller --for condition=Ready --timeout=180s
+        # Initialize helm and wait for tiller to start (this will deploy tiller to k8s)
+        helm init --wait --history-max 200
       }
 
       prepare_values_for_eirini () {
@@ -208,7 +207,7 @@ Vagrant.configure("2") do |config|
         helm repo add eirini https://cloudfoundry-incubator.github.io/eirini-release
         helm install eirini/uaa --namespace uaa --name uaa --values values.yaml
         # Wait for secrets to be generated
-        kubectl -n uaa wait jobs.batch --all --for condition=Complete --timeout=600s
+        kubectl -n uaa wait jobs.batch --all --for condition=Complete --timeout=1h
       }
 
       deploy_eirini () {
