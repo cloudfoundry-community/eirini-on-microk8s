@@ -231,6 +231,9 @@ Vagrant.configure("2") do |config|
         echo
         echo        'Create space and change target:'
         echo_yellow '  cf create-space myspace && cf target -o system -s myspace'
+        echo
+        echo        'Push a sample application:'
+        echo_yellow '  cd $(mktemp -d); echo "Hi, Eirini!" > index.html; cf push hello -b staticfile_buildpack'
       }
 
       main () {
