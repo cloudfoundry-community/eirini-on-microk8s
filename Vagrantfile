@@ -120,6 +120,9 @@ Vagrant.configure("2") do |config|
         microk8s.enable storage
         microk8s.enable dns
         #microk8s.enable metrics-server
+
+        # Enable rbac
+        #microk8s.enable rbac
       }
 
       main () {
