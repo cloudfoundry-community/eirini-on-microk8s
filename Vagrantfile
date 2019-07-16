@@ -10,9 +10,19 @@
 
 microk8s_ip = "192.168.51.101"
 eirini_version = "master"
-k8s_version = "1.15/stable"
-eirini_dir = "/home/vagrant/eirini"
+#k8s_version = "1.15/stable"
+k8s_version = "1.15/edge"  # FIXME: can be replaced by 1.15/stable when 1.15.1 is released. See https://github.com/ubuntu/microk8s/issues/523
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
+enable_rbac = true
+
+variables = <<~SHELL
+  MICROK8S_IP="#{microk8s_ip}"
+  EIRINI_VERSION="master"
+  K8S_VERSION="#{k8s_version}"
+  EIRINI_DIR="/home/vagrant/eirini"
+  DNS_FORWARDERS="#{dns_forwarders.join(" ")}"
+  ENABLE_RBAC="#{enable_rbac}"
+SHELL
 
 scripts_common = <<~'SHELL'
   set -euo pipefail
@@ -57,13 +67,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision "shell", name: "system" do |s|
-    s.args = [microk8s_ip, k8s_version, eirini_dir]
-
-    s.inline = scripts_common + <<~'SHELL'
-      MICROK8S_IP=$1
-      K8S_VERSION=$2
-      EIRINI_DIR=$3
-
+    s.inline = variables + scripts_common + <<~'SHELL'
       DONE_DIR="$EIRINI_DIR/done"
 
       prepare () {
@@ -113,6 +117,8 @@ Vagrant.configure("2") do |config|
       }
 
       start_microk8s () {
+        local enable_rbac=$1
+
         # Start microk8s
         microk8s.start
 
@@ -122,14 +128,16 @@ Vagrant.configure("2") do |config|
         #microk8s.enable metrics-server
 
         # Enable rbac
-        #microk8s.enable rbac
+        if [[ $enable_rbac == true ]]; then
+          microk8s.enable rbac
+        fi
       }
 
       main () {
         run_once prepare
         run_once install_microk8s_and_helm
         run_once generate_bits_certificate
-        run_once start_microk8s
+        run_once start_microk8s "$ENABLE_RBAC"
       }
 
       main "$@"
@@ -137,14 +145,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision "shell", name: "user", privileged: false do |s|
-    s.args = [microk8s_ip, eirini_version, eirini_dir, dns_forwarders.join(" ")]
-
-    s.inline = scripts_common + <<~'SHELL'
-      MICROK8S_IP=$1
-      EIRINI_VERSION=$2
-      EIRINI_DIR=$3
-      DNS_FORWARDERS=$4
-
+    s.inline = variables + scripts_common + <<~'SHELL'
       DONE_DIR="$EIRINI_DIR/done"
 
       kubectl () {
@@ -172,6 +173,9 @@ Vagrant.configure("2") do |config|
         local dns_patch
         dns_patch=$(kubectl -n kube-system get configmap/coredns -o jsonpath='{.data.Corefile}' | sed "s/\(forward .\) 8.8.8.8 8.8.4.4/\1 $DNS_FORWARDERS/" | jq -sR '{"data":{"Corefile":.}}')
         kubectl -n kube-system patch configmap/coredns --type merge -p "$dns_patch"
+
+        # Delete coredns pod to make sure the new settings are applied (sometimes coredns gets stuck in a failed state and not restarted)
+        kubectl -n kube-system delete pod -l k8s-app=kube-dns
       }
 
       deploy_heapster () {
@@ -183,8 +187,16 @@ Vagrant.configure("2") do |config|
       }
 
       helm_init () {
+        local enable_rbac=$1
+
         # Initialize helm and wait for tiller to start (this will deploy tiller to k8s)
-        helm init --wait --history-max 200
+        if [[ $enable_rbac == true ]]; then
+          kubectl create serviceaccount tiller --namespace kube-system
+          kubectl create clusterrolebinding tiller --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+          helm init --wait --history-max 200 --service-account tiller
+        else
+          helm init --wait --history-max 200
+        fi
         helm repo remove local >/dev/null || true
       }
 
@@ -215,6 +227,8 @@ Vagrant.configure("2") do |config|
       }
 
       deploy_eirini () {
+        local enable_rbac=$1
+
         ## Get secrets
         SECRET=$(kubectl get pods --namespace uaa -o jsonpath='{.items[?(.metadata.name=="uaa-0")].spec.containers[?(.name=="uaa")].env[?(.name=="INTERNAL_CA_CERT")].valueFrom.secretKeyRef.name}')
         CA_CERT="$(kubectl get secret "$SECRET" --namespace uaa -o jsonpath="{.data['internal-ca-cert']}" | base64 --decode -)"
@@ -223,8 +237,14 @@ Vagrant.configure("2") do |config|
 
         helm repo add bits https://cloudfoundry-incubator.github.io/bits-service-release/helm
 
+        # Bind the default service account of eirini namespace to a non-privileged cluster role so that pods can be successfully created when rbac is enabled.
+        # FIXME: Can be removed if this is merged https://github.com/cloudfoundry-incubator/eirini-release/pull/97
+        if [[ $enable_rbac == true ]]; then
+          kubectl create rolebinding eirini-nonprivileged --clusterrole=scf-cluster-role-nonprivileged --serviceaccount=eirini:default
+        fi
+
         git clone -b "$EIRINI_VERSION" https://github.com/cloudfoundry-incubator/eirini-release
-        helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "eirini.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "eirini.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}" --set "sizing.locket.capabilities={ALL}"
+        helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "eirini.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "eirini.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}"
 
         local admin_pass
         admin_pass=$(kubectl -n scf get secrets secrets -o jsonpath='{.data.cluster-admin-password}' | base64 -d)
@@ -245,10 +265,10 @@ Vagrant.configure("2") do |config|
         cd "$EIRINI_DIR"
         run_once configure_dns_forwarders
         run_once deploy_heapster
-        run_once helm_init
+        run_once helm_init "$ENABLE_RBAC"
         run_once prepare_values_for_eirini
         run_once deploy_uaa
-        run_once deploy_eirini
+        run_once deploy_eirini "$ENABLE_RBAC"
       }
 
       main "$@"
