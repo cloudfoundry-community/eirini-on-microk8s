@@ -14,9 +14,9 @@ When all components are up and running CF API will be available the following en
 - `https://api.192.168.51.101.nip.io`
 - [cf cli](https://github.com/cloudfoundry/cli) can be used either on your PC or from inside the VM. To get inside the VM run `vagrant ssh`.
 
-## Get to know status of the components
+## Get to know which components have not started yet
 ```
-vagrant ssh -c 'watch -n 10 "kubectl get pods --all-namespaces"'
+vagrant ssh -c 'watch -n 10 "kubectl get pods -A | grep -vE \"Completed|([0-9]+)/\1\""'
 ```
 
 ## Notes
