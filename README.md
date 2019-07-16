@@ -18,3 +18,6 @@ When all components are up and running CF API will be available the following en
 ```
 vagrant ssh -c 'watch -n 10 "kubectl get pods --all-namespaces"'
 ```
+
+## Notes
+- The Eirini is configured to stage on Kubernetes. This Vagrantfile is not tested with staging on Diego and may require more resources.
