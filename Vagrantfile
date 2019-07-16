@@ -182,6 +182,7 @@ Vagrant.configure("2") do |config|
       helm_init () {
         # Initialize helm and wait for tiller to start (this will deploy tiller to k8s)
         helm init --wait --history-max 200
+        helm repo remove local >/dev/null || true
       }
 
       prepare_values_for_eirini () {
