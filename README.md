@@ -20,4 +20,4 @@ vagrant ssh -c 'watch -n 10 "kubectl get pods -A | grep -vE \"Completed|([0-9]+)
 ```
 
 ## Notes
-- The Eirini is configured to stage on Kubernetes. This Vagrantfile is not tested with staging on Diego and may require more resources.
+- The Eirini is configured to stage on Kubernetes. This Vagrantfile has not been tested with staging on Diego and may require more resources.
