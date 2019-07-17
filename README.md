@@ -4,7 +4,7 @@ Vagrantfile for Eirini on microk8s is an easy way to get [microk8s](https://micr
 # How to use
 ## Setting up
 ```
-git clone https://github.com/giner/eirini-on-microk8s
+git clone https://github.com/cloudfoundry-community/eirini-on-microk8s
 cd eirini-on-microk8s
 # This may take a while. Get your favorite drink and relax.
 vagrant up
