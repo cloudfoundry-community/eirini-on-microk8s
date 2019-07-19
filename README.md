@@ -22,7 +22,7 @@ When all components are up and running CF API will be available the following en
 - [cf cli](https://github.com/cloudfoundry/cli) can be used either on your PC or from inside the VM. To get inside the VM run `vagrant ssh`.
 
 ## Cleaning up
-``
+```
 # When you are done or messed up
 vagrant destroy
 ```
