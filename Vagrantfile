@@ -250,6 +250,9 @@ Vagrant.configure("2") do |config|
         admin_pass=$(kubectl -n scf get secrets secrets -o jsonpath='{.data.cluster-admin-password}' | base64 -d)
 
         echo
+        echo        'Get to know which components have not started yet'
+        echo_yellow "  vagrant ssh -c 'watch -n 10 \"kubectl get pods -A | grep -vE \\\"Completed|([0-9]+)/\1\\\"\"'"
+        echo
         echo        'Login to Cloud Foundry:'
         echo_yellow "  cf login --skip-ssl-validation -a api.$MICROK8S_IP.nip.io -u admin -p \"$admin_pass\""
         echo
