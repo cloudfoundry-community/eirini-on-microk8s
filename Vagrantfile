@@ -227,8 +227,6 @@ Vagrant.configure("2") do |config|
       }
 
       deploy_eirini () {
-        local enable_rbac=$1
-
         ## Get secrets
         SECRET=$(kubectl get pods --namespace uaa -o jsonpath='{.items[?(.metadata.name=="uaa-0")].spec.containers[?(.name=="uaa")].env[?(.name=="INTERNAL_CA_CERT")].valueFrom.secretKeyRef.name}')
         CA_CERT="$(kubectl get secret "$SECRET" --namespace uaa -o jsonpath="{.data['internal-ca-cert']}" | base64 --decode -)"
@@ -236,12 +234,6 @@ Vagrant.configure("2") do |config|
         BITS_TLS_KEY="$(cat bits_tls.key)"
 
         helm repo add bits https://cloudfoundry-incubator.github.io/bits-service-release/helm
-
-        # Bind the default service account of eirini namespace to a non-privileged cluster role so that pods can be successfully created when rbac is enabled.
-        # FIXME: Can be removed if this is merged https://github.com/cloudfoundry-incubator/eirini-release/pull/97
-        if [[ $enable_rbac == true ]]; then
-          kubectl create rolebinding eirini-nonprivileged --clusterrole=scf-cluster-role-nonprivileged --serviceaccount=eirini:default
-        fi
 
         git clone -b "$EIRINI_VERSION" https://github.com/cloudfoundry-incubator/eirini-release
         helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "eirini.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "eirini.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}"
@@ -260,7 +252,7 @@ Vagrant.configure("2") do |config|
         echo_yellow '  cf create-space myspace && cf target -o system -s myspace'
         echo
         echo        'Push a sample application:'
-        echo_yellow '  cd $(mktemp -d); echo "Hi, Eirini!" > index.html; cf push hello -b staticfile_buildpack'
+        echo_yellow '  cd $(mktemp -d) && echo "Hi, Eirini!" > index.html && cf push hello -b staticfile_buildpack'
       }
 
       main () {
@@ -271,7 +263,7 @@ Vagrant.configure("2") do |config|
         run_once helm_init "$ENABLE_RBAC"
         run_once prepare_values_for_eirini
         run_once deploy_uaa
-        run_once deploy_eirini "$ENABLE_RBAC"
+        run_once deploy_eirini
       }
 
       main "$@"
