@@ -170,6 +170,7 @@ Vagrant.configure("2") do |config|
 
       configure_dns_forwarders () {
         # Update coredns settings
+        # FIXME: This is a not reliable way of configuring dns and may not work sometimes, see https://github.com/ubuntu/microk8s/issues/543
         local dns_patch
         dns_patch=$(kubectl -n kube-system get configmap/coredns -o jsonpath='{.data.Corefile}' | sed "s/\(forward .\) 8.8.8.8 8.8.4.4/\1 $DNS_FORWARDERS/" | jq -sR '{"data":{"Corefile":.}}')
         kubectl -n kube-system patch configmap/coredns --type merge -p "$dns_patch"
