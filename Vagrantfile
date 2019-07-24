@@ -125,7 +125,7 @@ Vagrant.configure("2") do |config|
         # Enable dns, storage and metrics-server
         microk8s.enable storage
         microk8s.enable dns
-        #microk8s.enable metrics-server
+        microk8s.enable metrics-server
 
         # Enable rbac
         if [[ $enable_rbac == true ]]; then
@@ -177,14 +177,6 @@ Vagrant.configure("2") do |config|
 
         # Delete coredns pod to make sure the new settings are applied (sometimes coredns gets stuck in a failed state and not restarted)
         kubectl -n kube-system delete pod -l k8s-app=kube-dns
-      }
-
-      deploy_heapster () {
-        # Install heapster
-        git clone https://github.com/kubernetes-retired/heapster
-        pushd heapster/deploy
-          ./kube.sh start
-        popd
       }
 
       helm_init () {
@@ -260,7 +252,6 @@ Vagrant.configure("2") do |config|
         # Switch to Eirini directory
         cd "$EIRINI_DIR"
         run_once configure_dns_forwarders
-        run_once deploy_heapster
         run_once helm_init "$ENABLE_RBAC"
         run_once prepare_values_for_eirini
         run_once deploy_uaa
