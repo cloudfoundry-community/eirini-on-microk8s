@@ -194,27 +194,37 @@ Vagrant.configure("2") do |config|
       }
 
       prepare_values_for_eirini () {
-        # Install Eirini
-        ## Get values.yaml and replace placeholders
-        ## FIXME: Templating here pleeeaaassseee
+        # Get values.yaml and replace placeholders
         curl -s https://raw.githubusercontent.com/cloudfoundry-incubator/eirini-release/master/values.yaml -o values.yaml
         sed -i "s/<worker-node-ip>/$MICROK8S_IP/g
-                s/<your-storage-class>/microk8s-hostpath/g
-                s/\(CLUSTER_ADMIN_PASSWORD:\) REPLACE/\1 $(pwgen -nc 12)/
-                s/\(UAA_ADMIN_CLIENT_SECRET:\) REPLACE/\1 $(pwgen -nc 12)/
-                s/\(BLOBSTORE_PASSWORD: &BLOBSTORE_PASSWORD\) \"REPLACE\"/\1 $(pwgen -nc 12)/
-                s/\(BITS_SERVICE_SECRET:\) REPLACE/\1 $(pwgen -nc 12)/
-                s/\(BITS_SERVICE_SIGNING_USER_PASSWORD:\) REPLACE/\1 $(pwgen -nc 12)/
-                s/\(ENABLE_OPI_STAGING:\) false/\1 true/
+                s/<persistent-storage-class>/microk8s-hostpath/g
+                s/<shared-storage-class>/microk8s-hostpath/g
+                s/<cluster-admin-pw>/$(pwgen -nc 12)/g
+                s/<uaa-admin-secret>/$(pwgen -nc 12)/g
+                s/<blobstore-pw>/$(pwgen -nc 12)/g
+                s/<bits-secret>/$(pwgen -nc 12)/g
+                s/<bits-user-pw>/$(pwgen -nc 12)/g
                " values.yaml
         cat values.yaml
-        echo
+        echo " "
+
+        local unhandled_placeholders
+        unhandled_placeholders=$(grep -Eo "<.+>" values.yaml) || true
+        if [[ -n $unhandled_placeholders ]]; then
+          {
+            echo "ERROR: values.yaml contains unhandled placeholders, please update $FUNCNAME function in Vagrantfile:"
+            echo "$unhandled_placeholders"
+            echo " "
+          } >&2
+          exit 1
+        fi
       }
 
       deploy_uaa () {
         ## Install UAA
         helm repo add eirini https://cloudfoundry-incubator.github.io/eirini-release
         helm install eirini/uaa --namespace uaa --name uaa --values values.yaml
+
         # Wait for secrets to be generated
         kubectl -n uaa wait jobs.batch --all --for condition=Complete --timeout=1h
       }
@@ -226,8 +236,8 @@ Vagrant.configure("2") do |config|
         BITS_TLS_CRT="$(cat bits_tls.crt)"
         BITS_TLS_KEY="$(cat bits_tls.key)"
 
+        # Install Eirini
         helm repo add bits https://cloudfoundry-incubator.github.io/bits-service-release/helm
-
         git clone -b "$EIRINI_VERSION" https://github.com/cloudfoundry-incubator/eirini-release
         helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "eirini.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "eirini.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}"
 
