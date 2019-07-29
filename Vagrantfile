@@ -13,7 +13,7 @@ microk8s_ip = "192.168.51.101"
 #k8s_version = "1.15/stable"
 k8s_version = "1.15/edge"  # FIXME: can be replaced by 1.15/stable when 1.15.1 is released. See https://github.com/ubuntu/microk8s/issues/523
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
-enable_rbac = true
+enable_rbac = true  # NOTE: metrics-server doesn't work with RBAC yet. See https://github.com/ubuntu/microk8s/issues/560
 
 variables = <<~SHELL
   MICROK8S_IP="#{microk8s_ip}"
