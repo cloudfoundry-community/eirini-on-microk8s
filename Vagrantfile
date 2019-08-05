@@ -93,6 +93,8 @@ Vagrant.configure("2") do |config|
       }
 
       install_microk8s_and_helm () {
+        local enable_rbac=$1
+
         # Install microk8s and helm
         snap install microk8s --classic --channel="$K8S_VERSION"
         snap install helm --classic
@@ -103,6 +105,13 @@ Vagrant.configure("2") do |config|
         # Enable privileged containers
         microk8s.stop
         echo '--allow-privileged=true' | tee -a /var/snap/microk8s/current/args/kube-apiserver
+
+        # Temporary fix for metrics
+        # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
+        if [[ $enable_rbac == true ]]; then
+          echo '--proxy-client-cert-file=${SNAP_DATA}/certs/server.crt' | tee -a /var/snap/microk8s/current/args/kube-apiserver
+          echo '--proxy-client-key-file=${SNAP_DATA}/certs/server.key' | tee -a /var/snap/microk8s/current/args/kube-apiserver
+        fi
       }
 
       generate_bits_certificate () {
@@ -129,12 +138,17 @@ Vagrant.configure("2") do |config|
         # Enable rbac
         if [[ $enable_rbac == true ]]; then
           microk8s.enable rbac
+
+          # Temporary fix for metrics
+          # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
+          kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
+          kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
         fi
       }
 
       main () {
         run_once prepare
-        run_once install_microk8s_and_helm
+        run_once install_microk8s_and_helm "$ENABLE_RBAC"
         run_once generate_bits_certificate
         run_once start_microk8s "$ENABLE_RBAC"
       }
