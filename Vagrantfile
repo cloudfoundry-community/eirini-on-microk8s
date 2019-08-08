@@ -55,7 +55,7 @@ scripts_common = <<~'SHELL'
     local kubectl_cmd
     kubectl_cmd=$(which kubectl)
 
-    local succ_retries=2
+    local succ_retries=5
     local fail_retries=5
 
     local succ_counter=0
@@ -67,6 +67,7 @@ scripts_common = <<~'SHELL'
         fail_counter=0
         succ_counter=$(( succ_counter + 1 ))
         sleep 1
+        echo "Ensuring stable connection to the API server ($succ_counter / $succ_retries) ..." >&2
         (( succ_counter > succ_retries )) && break
       else
         succ_counter=0
