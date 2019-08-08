@@ -8,11 +8,11 @@
 # Notes:
 # - Make sure `VBoxHeadless` process is not swapping out. If it does try to lower the requested memory for the VM.
 
-eirini_version = "master"  # Known to work versions: 0.14.0
+eirini_version = "master"
 microk8s_ip = "192.168.51.101"
 k8s_version = "1.15/stable"
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
-enable_rbac = true  # NOTE: metrics-server doesn't work with RBAC yet. See https://github.com/ubuntu/microk8s/issues/560
+enable_rbac = true
 
 variables = <<~SHELL
   MICROK8S_IP="#{microk8s_ip}"
@@ -51,22 +51,31 @@ scripts_common = <<~'SHELL'
     fi
   }
 
-  kubectl () {
-    local kubectl_cmd counter
-    kubectl_cmd=$(which kubectl)
+  retry () {
+    local retries=$1; shift
+    local command=("$@")
+    local output
 
-    # Make sure the API server is up and running
-    local retries=5
     for ((counter=1; counter<=retries; counter++)); do
-      if "$kubectl_cmd" version > /dev/null; then
+      if output=$("${command[@]}" 2>&1); then
         break
       else
         sleep 1
-        echo "Retrying connection to the API server ($counter / $retries) ..." >&2
+        echo "Retrying: \"${command[@]}\" ($counter / $retries) ..." >&2
         continue
       fi
       return 1
     done
+
+    echo "$output"
+  }
+
+  kubectl () {
+    local kubectl_cmd
+    kubectl_cmd=$(which kubectl)
+
+    # Make sure the API server is up and running
+    retry 5 "$kubectl_cmd" version > /dev/null
 
     "$kubectl_cmd" "$@"
   }
@@ -127,8 +136,8 @@ Vagrant.configure("2") do |config|
         echo '--allow-privileged=true' | tee -a /var/snap/microk8s/current/args/kube-apiserver
 
         # Temporary fix for metrics
-        # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
-        if [[ $enable_rbac == true ]]; then
+        # FIXME: Remove when microk8s 1.15.3 is released
+        if [[ $enable_rbac == true ]] && ! grep -s -- '--proxy-client-cert-file' /var/snap/microk8s/current/args/kube-apiserver; then
           echo '--proxy-client-cert-file=${SNAP_DATA}/certs/server.crt' | tee -a /var/snap/microk8s/current/args/kube-apiserver
           echo '--proxy-client-key-file=${SNAP_DATA}/certs/server.key' | tee -a /var/snap/microk8s/current/args/kube-apiserver
         fi
@@ -160,9 +169,12 @@ Vagrant.configure("2") do |config|
           microk8s.enable rbac
 
           # Temporary fix for metrics
-          # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
-          kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
-          kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
+          # FIXME: Remove when microk8s 1.15.3 is released
+          if ! kubectl get clusterrole system:aggregated-metrics-reader &> /dev/null; then
+            retry 5 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
+            kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
+            kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
+          fi
         fi
       }
 
