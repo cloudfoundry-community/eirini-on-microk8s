@@ -50,6 +50,26 @@ scripts_common = <<~'SHELL'
       touch "$DONE_DIR/$cmd"
     fi
   }
+
+  kubectl () {
+    local kubectl_cmd counter
+    kubectl_cmd=$(which kubectl)
+
+    # Make sure the API server is up and running
+    local retries=5
+    for ((counter=1; counter<=retries; counter++)); do
+      if "$kubectl_cmd" version > /dev/null; then
+        break
+      else
+        sleep 1
+        echo "Retrying connection to the API server ($counter / $retries) ..." >&2
+        continue
+      fi
+      return 1
+    done
+
+    "$kubectl_cmd" "$@"
+  }
 SHELL
 
 Vagrant.configure("2") do |config|
@@ -160,26 +180,6 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", name: "user", privileged: false do |s|
     s.inline = variables + scripts_common + <<~'SHELL'
       DONE_DIR="$EIRINI_DIR/done"
-
-      kubectl () {
-        local kubectl_cmd counter
-        kubectl_cmd=$(which kubectl)
-
-        # Make sure the API server is up and running
-        local retries=5
-        for ((counter=1; counter<=retries; counter++)); do
-          if "$kubectl_cmd" version > /dev/null; then
-            break
-          else
-            sleep 1
-            echo "Retrying connection to the API server ($counter / $retries) ..." >&2
-            continue
-          fi
-          return 1
-        done
-
-        "$kubectl_cmd" "$@"
-      }
 
       configure_dns_forwarders () {
         # Update coredns settings
