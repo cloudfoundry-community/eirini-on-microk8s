@@ -52,20 +52,30 @@ scripts_common = <<~'SHELL'
   }
 
   kubectl () {
-    local kubectl_cmd counter
+    local kubectl_cmd
     kubectl_cmd=$(which kubectl)
 
+    local succ_retries=2
+    local fail_retries=5
+
+    local succ_counter=0
+    local fail_counter=0
+
     # Make sure the API server is up and running
-    local retries=5
-    for ((counter=1; counter<=retries; counter++)); do
+    while true; do
       if "$kubectl_cmd" version > /dev/null; then
-        break
-      else
+        fail_counter=0
+        succ_counter=$(( succ_counter + 1 ))
         sleep 1
-        echo "Retrying connection to the API server ($counter / $retries) ..." >&2
+        (( succ_counter > succ_retries )) && break
+      else
+        succ_counter=0
+        fail_counter=$(( fail_counter + 1 ))
+        (( fail_counter > fail_retries )) && return 1
+        sleep 1
+        echo "Retrying connection to the API server ($fail_counter / $fail_retries) ..." >&2
         continue
       fi
-      return 1
     done
 
     "$kubectl_cmd" "$@"
@@ -161,6 +171,7 @@ Vagrant.configure("2") do |config|
 
           # Temporary fix for metrics
           # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
+          kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
           kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
           kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
         fi
@@ -274,11 +285,11 @@ Vagrant.configure("2") do |config|
       main () {
         # Switch to Eirini directory
         cd "$EIRINI_DIR"
-        run_once configure_dns_forwarders
-        run_once helm_init "$ENABLE_RBAC"
-        run_once prepare_values_for_eirini
-        run_once deploy_uaa
-        run_once deploy_eirini
+        #run_once configure_dns_forwarders
+        #run_once helm_init "$ENABLE_RBAC"
+        #run_once prepare_values_for_eirini
+        #run_once deploy_uaa
+        #run_once deploy_eirini
       }
 
       main "$@"
