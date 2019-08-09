@@ -170,10 +170,7 @@ Vagrant.configure("2") do |config|
 
           # Temporary fix for metrics
           # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
-          #kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
-          #while ! kubectl get --raw=/apis/metrics.k8s.io/v1beta1; do sleep 1; done
-          #retry 300 kubectl get --raw=/apis/metrics.k8s.io/v1beta1
-          retry 300 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
+          retry 5 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
           kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
           kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
         fi
