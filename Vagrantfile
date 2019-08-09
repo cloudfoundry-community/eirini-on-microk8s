@@ -8,12 +8,11 @@
 # Notes:
 # - Make sure `VBoxHeadless` process is not swapping out. If it does try to lower the requested memory for the VM.
 
-eirini_version = "master"  # Known to work versions: 0.14.0
+eirini_version = "master"
 microk8s_ip = "192.168.51.101"
 k8s_version = "1.15/stable"
-#dns_forwarders = ["8.8.8.8", "8.8.4.4"]
-dns_forwarders = ["10.0.63.3", "10.0.63.4"]
-enable_rbac = true  # NOTE: metrics-server doesn't work with RBAC yet. See https://github.com/ubuntu/microk8s/issues/560
+dns_forwarders = ["8.8.8.8", "8.8.4.4"]
+enable_rbac = true
 
 variables = <<~SHELL
   MICROK8S_IP="#{microk8s_ip}"
@@ -55,50 +54,28 @@ scripts_common = <<~'SHELL'
   retry () {
     local retries=$1; shift
     local command=("$@")
+    local output
 
     for ((counter=1; counter<=retries; counter++)); do
-      if "${command[@]}" > /dev/null; then
+      if output=$("${command[@]}" 2>&1); then
         break
       else
         sleep 1
-        echo "Retrying connection to the API server ($counter / $retries) ..." >&2
+        echo "Retrying: \"${command[@]}\" ($counter / $retries) ..." >&2
         continue
       fi
       return 1
     done
-    "$kubectl_cmd" "$@"
+
+    echo "$output"
   }
 
   kubectl () {
     local kubectl_cmd
     kubectl_cmd=$(which kubectl)
 
-    local succ_retries=2
-    local fail_retries=5
-
-    local succ_counter=0
-    local fail_counter=0
-
     # Make sure the API server is up and running
-    while true; do
-      if "$kubectl_cmd" version; then
-        fail_counter=0
-        succ_counter=$(( succ_counter + 1 ))
-        (( succ_counter > succ_retries )) && break
-        sleep 1
-        echo "Ensuring stable connection to the API server ($succ_counter / $succ_retries) ..."
-        #"$kubectl_cmd" get apiservice v1beta1.metrics.k8s.io; echo "ERR1: $?"; true
-        #"$kubectl_cmd" get apiservices; echo "ERR2: $?"; true
-        #"$kubectl_cmd" wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m; echo "ERR3: $?"; true
-      else
-        succ_counter=0
-        fail_counter=$(( fail_counter + 1 ))
-        (( fail_counter > fail_retries )) && return 1
-        sleep 1
-        echo "Retrying connection to the API server ($fail_counter / $fail_retries) ..." >&2
-        continue
-      fi
-    done
+    retry 5 "$kubectl_cmd" version > /dev/null
 
     "$kubectl_cmd" "$@"
   }
@@ -194,7 +171,9 @@ Vagrant.configure("2") do |config|
           # Temporary fix for metrics
           # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
           #kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
-          while ! kubectl get --raw=/apis/metrics.k8s.io/v1beta1; do sleep 1; done
+          #while ! kubectl get --raw=/apis/metrics.k8s.io/v1beta1; do sleep 1; done
+          #retry 300 kubectl get --raw=/apis/metrics.k8s.io/v1beta1
+          retry 300 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
           kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
           kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
         fi
@@ -308,11 +287,11 @@ Vagrant.configure("2") do |config|
       main () {
         # Switch to Eirini directory
         cd "$EIRINI_DIR"
-        #run_once configure_dns_forwarders
-        #run_once helm_init "$ENABLE_RBAC"
-        #run_once prepare_values_for_eirini
-        #run_once deploy_uaa
-        #run_once deploy_eirini
+        run_once configure_dns_forwarders
+        run_once helm_init "$ENABLE_RBAC"
+        run_once prepare_values_for_eirini
+        run_once deploy_uaa
+        run_once deploy_eirini
       }
 
       main "$@"
