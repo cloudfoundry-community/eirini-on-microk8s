@@ -11,7 +11,8 @@
 eirini_version = "master"  # Known to work versions: 0.14.0
 microk8s_ip = "192.168.51.101"
 k8s_version = "1.15/stable"
-dns_forwarders = ["8.8.8.8", "8.8.4.4"]
+#dns_forwarders = ["8.8.8.8", "8.8.4.4"]
+dns_forwarders = ["10.0.63.3", "10.0.63.4"]
 enable_rbac = true  # NOTE: metrics-server doesn't work with RBAC yet. See https://github.com/ubuntu/microk8s/issues/560
 
 variables = <<~SHELL
@@ -51,12 +52,28 @@ scripts_common = <<~'SHELL'
     fi
   }
 
+  retry () {
+    local retries=$1; shift
+    local command=("$@")
+
+    for ((counter=1; counter<=retries; counter++)); do
+      if "${command[@]}" > /dev/null; then
+        break
+      else
+        sleep 1
+        echo "Retrying connection to the API server ($counter / $retries) ..." >&2
+        continue
+      fi
+      return 1
+    done
+    "$kubectl_cmd" "$@"
+  }
+
   kubectl () {
-    set -x
     local kubectl_cmd
     kubectl_cmd=$(which kubectl)
 
-    local succ_retries=15
+    local succ_retries=2
     local fail_retries=5
 
     local succ_counter=0
@@ -70,6 +87,9 @@ scripts_common = <<~'SHELL'
         (( succ_counter > succ_retries )) && break
         sleep 1
         echo "Ensuring stable connection to the API server ($succ_counter / $succ_retries) ..."
+        #"$kubectl_cmd" get apiservice v1beta1.metrics.k8s.io; echo "ERR1: $?"; true
+        #"$kubectl_cmd" get apiservices; echo "ERR2: $?"; true
+        #"$kubectl_cmd" wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m; echo "ERR3: $?"; true
       else
         succ_counter=0
         fail_counter=$(( fail_counter + 1 ))
@@ -173,7 +193,8 @@ Vagrant.configure("2") do |config|
 
           # Temporary fix for metrics
           # FIXME: Remove after the following issue is fixed https://github.com/ubuntu/microk8s/issues/560
-          kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
+          #kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
+          while ! kubectl get --raw=/apis/metrics.k8s.io/v1beta1; do sleep 1; done
           kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
           kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
         fi
