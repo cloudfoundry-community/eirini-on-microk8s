@@ -52,6 +52,7 @@ scripts_common = <<~'SHELL'
   }
 
   kubectl () {
+    set -x
     local kubectl_cmd
     kubectl_cmd=$(which kubectl)
 
@@ -63,7 +64,7 @@ scripts_common = <<~'SHELL'
 
     # Make sure the API server is up and running
     while true; do
-      if "$kubectl_cmd" version > /dev/null; then
+      if "$kubectl_cmd" version; then
         fail_counter=0
         succ_counter=$(( succ_counter + 1 ))
         (( succ_counter > succ_retries )) && break
