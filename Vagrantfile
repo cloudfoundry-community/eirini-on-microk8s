@@ -1,6 +1,6 @@
 # Eirini + SCF on microk8s
 
-# Requirements:
+# PC requirements:
 # - CPU: 4-8 cores
 # - RAM: 16 GiB
 # - Disk: 100 GiB free space
@@ -14,6 +14,12 @@ k8s_version = "1.15/stable"
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
+# VM configuration
+cpus   = 4    # Cores
+memory = 8    # GiB
+swap   = 8    # GiB
+disk   = 120  # GiB
+
 variables = <<~SHELL
   MICROK8S_IP="#{microk8s_ip}"
   EIRINI_VERSION="master"
@@ -21,6 +27,7 @@ variables = <<~SHELL
   EIRINI_DIR="/home/vagrant/eirini"
   DNS_FORWARDERS="#{dns_forwarders.join(" ")}"
   ENABLE_RBAC="#{enable_rbac}"
+  SWAP="#{swap}"
 SHELL
 
 scripts_common = <<~'SHELL'
@@ -86,11 +93,11 @@ Vagrant.configure("2") do |config|
   config.vm.network "private_network", ip: microk8s_ip
 
   config.vagrant.plugins = ["vagrant-disksize"]
-  config.disksize.size = '120GB'
+  config.disksize.size = disk.to_s + 'GB'
 
   config.vm.provider "virtualbox" do |v|
-    v.cpus = 4
-    v.memory = 8192
+    v.cpus = cpus
+    v.memory = memory * 1024
     v.customize ["storagectl", :id, "--name", "SCSI", "--hostiocache", "on"]
   end
 
@@ -114,7 +121,7 @@ Vagrant.configure("2") do |config|
 
         # Add swapfile
         local swapfile="/eirini_swapfile"
-        fallocate -l 8G "$swapfile"
+        fallocate -l "${SWAP}G" "$swapfile"
         chmod 600 "$swapfile"
         mkswap "$swapfile"
         echo "$swapfile none swap sw 0 0" | tee -a /etc/fstab
