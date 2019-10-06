@@ -131,12 +131,17 @@ Vagrant.configure("2") do |config|
       install_microk8s_and_helm () {
         local enable_rbac=$1
 
-        # Install microk8s and helm
+        # Install microk8s
         snap install microk8s --classic --channel="$K8S_VERSION"
+
+        # Install helm
         snap install helm --classic
 
         # Alias microk8s.kubectl -> kubectl
         snap alias microk8s.kubectl kubectl
+
+        # Allow kubectl to be run by user vagrant
+        usermod -a -G microk8s vagrant
 
         # Enable privileged containers
         microk8s.stop
