@@ -101,7 +101,7 @@ Vagrant.configure("2") do |config|
     v.customize ["storagectl", :id, "--name", "SCSI", "--hostiocache", "on"]
   end
 
-  config.vm.provision "shell", name: "system" do |s|
+  config.vm.provision "shell", name: "system", reset: true do |s|
     s.inline = variables + scripts_common + <<~'SHELL'
       DONE_DIR="$EIRINI_DIR/done"
 
