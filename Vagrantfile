@@ -277,7 +277,7 @@ Vagrant.configure("2") do |config|
         # Install Eirini
         helm repo add bits https://cloudfoundry-incubator.github.io/bits-service-release/helm
         git clone https://github.com/cloudfoundry-incubator/eirini-release && git -C "eirini-release" checkout "$EIRINI_VERSION"
-        helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "eirini.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "eirini.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}"
+        helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "bits.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "bits.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}"
 
         local admin_pass
         admin_pass=$(kubectl -n scf get secrets secrets -o jsonpath='{.data.cluster-admin-password}' | base64 -d)
