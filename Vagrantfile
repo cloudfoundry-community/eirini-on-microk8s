@@ -146,13 +146,6 @@ Vagrant.configure("2") do |config|
         # Enable privileged containers
         microk8s.stop
         echo '--allow-privileged=true' | tee -a /var/snap/microk8s/current/args/kube-apiserver
-
-        # Temporary fix for metrics
-        # FIXME: Remove when microk8s 1.15.3 is released
-        if [[ $enable_rbac == true ]] && ! grep -s -- '--proxy-client-cert-file' /var/snap/microk8s/current/args/kube-apiserver; then
-          echo '--proxy-client-cert-file=${SNAP_DATA}/certs/server.crt' | tee -a /var/snap/microk8s/current/args/kube-apiserver
-          echo '--proxy-client-key-file=${SNAP_DATA}/certs/server.key' | tee -a /var/snap/microk8s/current/args/kube-apiserver
-        fi
       }
 
       generate_bits_certificate () {
@@ -180,14 +173,6 @@ Vagrant.configure("2") do |config|
         # Enable rbac
         if [[ $enable_rbac == true ]]; then
           microk8s.enable rbac
-
-          # Temporary fix for metrics
-          # FIXME: Remove when microk8s 1.15.3 is released
-          if ! kubectl get clusterrole system:aggregated-metrics-reader &> /dev/null; then
-            retry 5 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
-            kubectl create clusterrole system:aggregated-metrics-reader --resource=pods.metrics.k8s.io,nodes.metrics.k8s.io --verb=get,list,watch
-            kubectl create clusterrolebinding microk8s-view-metrics --clusterrole=system:aggregated-metrics-reader --user=127.0.0.1
-          fi
         fi
       }
 
