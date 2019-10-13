@@ -209,9 +209,9 @@ Vagrant.configure("2") do |config|
         if [[ $enable_rbac == true ]]; then
           kubectl create serviceaccount tiller --namespace kube-system
           kubectl create clusterrolebinding tiller --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-          helm init --wait --history-max 200 --service-account tiller
+          retry 5 helm init --wait --history-max 200 --service-account tiller
         else
-          helm init --wait --history-max 200
+          retry 5 helm init --wait --history-max 200
         fi
         helm repo remove local >/dev/null || true
       }
