@@ -167,7 +167,7 @@ Vagrant.configure("2") do |config|
         # Enable dns, storage and metrics-server
         microk8s.enable dns
         # WORK AROUND: wait for the cluster to be functional after enabling the first plugin
-        microk8s.status --wait-ready --timeout 60
+        sleep 5 && microk8s.status --wait-ready --timeout 60
         microk8s.enable storage
         microk8s.enable metrics-server
 
