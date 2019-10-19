@@ -166,7 +166,8 @@ Vagrant.configure("2") do |config|
 
         # Enable dns, storage and metrics-server
         microk8s.enable dns
-        sleep 5
+        # WORK AROUND: wait for the cluster to be functional after enabling the first plugin
+        microk8s.status --wait-ready --timeout 60
         microk8s.enable storage
         microk8s.enable metrics-server
 
@@ -209,9 +210,9 @@ Vagrant.configure("2") do |config|
         if [[ $enable_rbac == true ]]; then
           kubectl create serviceaccount tiller --namespace kube-system
           kubectl create clusterrolebinding tiller --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
-          retry 5 helm init --wait --history-max 200 --service-account tiller
+          helm init --wait --history-max 200 --service-account tiller
         else
-          retry 5 helm init --wait --history-max 200
+          helm init --wait --history-max 200
         fi
         helm repo remove local >/dev/null || true
       }
