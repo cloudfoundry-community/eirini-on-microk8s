@@ -10,8 +10,7 @@
 
 eirini_version = "master"
 microk8s_ip = "192.168.51.101"
-helm_version = "2.16/stable"
-k8s_version = "1.15/stable"
+k8s_version = "1.17/stable"
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
@@ -25,7 +24,6 @@ variables = <<~SHELL
   MICROK8S_IP="#{microk8s_ip}"
   EIRINI_VERSION="master"
   K8S_VERSION="#{k8s_version}"
-  HELM_VERSION="#{helm_version}"
   EIRINI_DIR="/home/vagrant/eirini"
   DNS_FORWARDERS="#{dns_forwarders.join(" ")}"
   ENABLE_RBAC="#{enable_rbac}"
@@ -130,12 +128,9 @@ Vagrant.configure("2") do |config|
         swapon -a
       }
 
-      install_microk8s_and_helm () {
+      install_microk8s () {
         # Install microk8s
         snap install microk8s --classic --channel="$K8S_VERSION"
-
-        # Install helm
-        snap install helm --classic --channel=$HELM_VERSION 
 
         # Alias microk8s.kubectl -> kubectl
         snap alias microk8s.kubectl kubectl
@@ -164,14 +159,17 @@ Vagrant.configure("2") do |config|
         # Start microk8s
         microk8s.start
 
-        # Enable dns, storage and metrics-server
+        # Enable dns, storage, metrics-server, helm
         microk8s.enable dns
-        # WORK AROUND: wait for the cluster to be functional after enabling the first plugin
-        sleep 5 && microk8s.status --wait-ready --timeout 60
         microk8s.enable storage
         microk8s.enable metrics-server
+        microk8s.enable helm 2>/dev/null
+        snap alias microk8s.helm helm
 
-        # Work around for an issue in Helm https://github.com/helm/helm/issues/6361
+        # Work around for an issue in Helm (will be fixed in Helm 2.16.2 and 3.0.2)
+        # See:
+        # - https://github.com/helm/helm/issues/6361
+        # - https://github.com/helm/helm/pull/7196
         retry 5 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
         sleep 10
         retry 5 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
@@ -184,7 +182,7 @@ Vagrant.configure("2") do |config|
 
       main () {
         run_once prepare
-        run_once install_microk8s_and_helm
+        run_once install_microk8s
         run_once generate_bits_certificate
         run_once start_microk8s "$ENABLE_RBAC"
       }
