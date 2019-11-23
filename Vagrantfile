@@ -10,7 +10,7 @@
 
 eirini_version = "master"
 microk8s_ip = "192.168.51.101"
-k8s_version = "1.15/stable"
+k8s_version = "1.16/stable"
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
@@ -128,14 +128,9 @@ Vagrant.configure("2") do |config|
         swapon -a
       }
 
-      install_microk8s_and_helm () {
-        local enable_rbac=$1
-
+      install_microk8s () {
         # Install microk8s
         snap install microk8s --classic --channel="$K8S_VERSION"
-
-        # Install helm
-        snap install helm --classic
 
         # Alias microk8s.kubectl -> kubectl
         snap alias microk8s.kubectl kubectl
@@ -164,12 +159,12 @@ Vagrant.configure("2") do |config|
         # Start microk8s
         microk8s.start
 
-        # Enable dns, storage and metrics-server
+        # Enable dns, storage, metrics-server, helm
         microk8s.enable dns
-        # WORK AROUND: wait for the cluster to be functional after enabling the first plugin
-        sleep 5 && microk8s.status --wait-ready --timeout 60
         microk8s.enable storage
         microk8s.enable metrics-server
+        microk8s.enable helm 2>/dev/null
+        snap alias microk8s.helm helm
 
         # Enable rbac
         if [[ $enable_rbac == true ]]; then
@@ -179,7 +174,7 @@ Vagrant.configure("2") do |config|
 
       main () {
         run_once prepare
-        run_once install_microk8s_and_helm "$ENABLE_RBAC"
+        run_once install_microk8s
         run_once generate_bits_certificate
         run_once start_microk8s "$ENABLE_RBAC"
       }
