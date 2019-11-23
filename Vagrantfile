@@ -129,8 +129,6 @@ Vagrant.configure("2") do |config|
       }
 
       install_microk8s_and_helm () {
-        local enable_rbac=$1
-
         # Install microk8s
         snap install microk8s --classic --channel="$K8S_VERSION"
 
@@ -179,7 +177,7 @@ Vagrant.configure("2") do |config|
 
       main () {
         run_once prepare
-        run_once install_microk8s_and_helm "$ENABLE_RBAC"
+        run_once install_microk8s_and_helm
         run_once generate_bits_certificate
         run_once start_microk8s "$ENABLE_RBAC"
       }
