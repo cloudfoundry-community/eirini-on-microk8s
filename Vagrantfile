@@ -169,6 +169,11 @@ Vagrant.configure("2") do |config|
         microk8s.enable storage
         microk8s.enable metrics-server
 
+        # Work around for an issue in Helm https://github.com/helm/helm/issues/6361
+        retry 5 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
+        sleep 10
+        retry 5 kubectl wait apiservice v1beta1.metrics.k8s.io --for=condition=Available --timeout=5m
+
         # Enable rbac
         if [[ $enable_rbac == true ]]; then
           microk8s.enable rbac
