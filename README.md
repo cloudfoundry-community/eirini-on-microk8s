@@ -1,5 +1,5 @@
 # eirini-on-microk8s
-Vagrantfile for Eirini on microk8s is an easy way to get [microk8s](https://microk8s.io) with [SCF](https://github.com/SUSE/scf) and [Eirini](https://github.com/cloudfoundry-incubator/eirini-release) running on your PC.
+Vagrantfile for Eirini on microk8s is an easy way to get Cloud Foundry running on top of Kubernetes in a single VM running on your PC ([microk8s](https://microk8s.io) + [SCF](https://github.com/SUSE/scf) + [Eirini](https://github.com/cloudfoundry-incubator/eirini-release))
 
 # How to use
 ## Setting up
