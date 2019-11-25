@@ -11,6 +11,7 @@
 eirini_version = "master"
 microk8s_ip = "192.168.51.101"
 k8s_version = "1.15/stable"
+helm_version = "2.16"
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
@@ -133,7 +134,7 @@ Vagrant.configure("2") do |config|
         snap install microk8s --classic --channel="$K8S_VERSION"
 
         # Install helm
-        snap install helm --classic
+        snap install helm --classic --channel="$HELM_VERSION"
 
         # Alias microk8s.kubectl -> kubectl
         snap alias microk8s.kubectl kubectl
