@@ -10,6 +10,7 @@
 
 eirini_version = "master"
 microk8s_ip = "192.168.51.101"
+helm_version = "2.16/stable"
 k8s_version = "1.15/stable"
 dns_forwarders = ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
@@ -24,6 +25,7 @@ variables = <<~SHELL
   MICROK8S_IP="#{microk8s_ip}"
   EIRINI_VERSION="master"
   K8S_VERSION="#{k8s_version}"
+  HELM_VERSION="#{helm_version}"
   EIRINI_DIR="/home/vagrant/eirini"
   DNS_FORWARDERS="#{dns_forwarders.join(" ")}"
   ENABLE_RBAC="#{enable_rbac}"
@@ -133,7 +135,7 @@ Vagrant.configure("2") do |config|
         snap install microk8s --classic --channel="$K8S_VERSION"
 
         # Install helm
-        snap install helm --classic
+        snap install helm --classic --channel=$HELM_VERSION 
 
         # Alias microk8s.kubectl -> kubectl
         snap alias microk8s.kubectl kubectl
