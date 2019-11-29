@@ -28,5 +28,6 @@ vagrant destroy
 ```
 
 ## Notes
-- By default the latest version (master branch) of [eirini-release](https://github.com/cloudfoundry-incubator/eirini-release) is deploy. This can be changed directly in Vagrantfile.
-- The Eirini is configured to stage on Kubernetes. This Vagrantfile has not been tested with staging on Diego and may require more resources.
+- By default the latest version (master branch) of [eirini-release](https://github.com/cloudfoundry-incubator/eirini-release) is deployed which, sometimes, may be not fully functional.
+  Version of Eirini release can be changed in Vagrantfile, e.g. `eirini_version = "1.0.0"`
+- This setup has Eirini configured to stage on Kubernetes (which is default). This is no being tested with staging on Diego therefore may not work or require more resources.
