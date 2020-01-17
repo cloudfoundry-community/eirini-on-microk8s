@@ -11,7 +11,7 @@
 eirini_version = "master"
 microk8s_ip = "192.168.51.101"
 k8s_version = "1.17/stable"
-dns_forwarders = ["8.8.8.8", "8.8.4.4"]
+dns_forwarders = ["10.0.2.3"]    # ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
 # VM configuration
