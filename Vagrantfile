@@ -10,7 +10,7 @@
 
 eirini_version = "master"
 microk8s_ip = "192.168.51.101"
-k8s_version = "1.17/stable"
+k8s_version = "1.18/stable"
 dns_forwarders = ["10.0.2.3"]    # ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
@@ -99,6 +99,10 @@ Vagrant.configure("2") do |config|
     v.cpus = cpus
     v.memory = memory * 1024
     v.customize ["storagectl", :id, "--name", "SCSI", "--hostiocache", "on"]
+
+    # Work around for https://bugs.launchpad.net/cloud-images/+bug/1829625 (required for ubuntu/focal64)
+    #v.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+    #v.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
   end
 
   config.vm.provision "shell", name: "system", upload_path: "/tmp/vagrant-shell-system", reset: true do |s|
