@@ -22,7 +22,7 @@ disk   = 120  # GiB
 
 variables = <<~SHELL
   MICROK8S_IP="#{microk8s_ip}"
-  EIRINI_VERSION="master"
+  EIRINI_VERSION="#{eirini_version}"
   K8S_VERSION="#{k8s_version}"
   EIRINI_DIR="/home/vagrant/eirini"
   DNS_FORWARDERS="#{dns_forwarders.join(" ")}"
