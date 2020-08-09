@@ -101,8 +101,7 @@ Vagrant.configure("2") do |config|
     v.customize ["storagectl", :id, "--name", "SCSI", "--hostiocache", "on"]
 
     # Work around for https://bugs.launchpad.net/cloud-images/+bug/1829625 (required for ubuntu/focal64)
-    #v.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
-    #v.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
+    v.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
   end
 
   config.vm.provision "shell", name: "system", upload_path: "/tmp/vagrant-shell-system", reset: true do |s|
