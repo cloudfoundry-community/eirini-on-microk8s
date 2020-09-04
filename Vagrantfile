@@ -10,7 +10,7 @@
 
 eirini_version = "master"
 microk8s_ip = "192.168.51.101"
-k8s_version = "1.18/stable"
+k8s_version = "1.19/stable"
 dns_forwarders = ["10.0.2.3"]    # ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
@@ -149,6 +149,7 @@ Vagrant.configure("2") do |config|
       generate_bits_certificate () {
         # Generate self-signed certificate for registry and install on the host vm
         openssl req -x509 -newkey rsa:4096 -keyout "$EIRINI_DIR/bits_tls.key" -out "$EIRINI_DIR/bits_tls.crt" -days 3650 -nodes \
+          -addext "subjectAltName = DNS:registry.$MICROK8S_IP.nip.io" \
           -subj "/C=XX/ST=XXXX/L=XXXX/O=XXXX/OU=XXXX/CN=registry.$MICROK8S_IP.nip.io/emailAddress=microk8s@example.com" 2>&1 | tr '\n' ' '
         # Have to install the certificage before containerd starts
         cp "$EIRINI_DIR/bits_tls.crt" /usr/local/share/ca-certificates/
