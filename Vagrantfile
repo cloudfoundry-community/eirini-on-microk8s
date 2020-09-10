@@ -8,9 +8,9 @@
 # Notes:
 # - Make sure `VBoxHeadless` process is not swapping out. If it does try to lower the requested memory for the VM.
 
-eirini_version = "master"
+eirini_version = "v1.8.0"
 microk8s_ip = "192.168.51.101"
-k8s_version = "1.19/stable"
+k8s_version = "latest/edge/runc-nnp"
 dns_forwarders = ["10.0.2.3"]    # ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
 
