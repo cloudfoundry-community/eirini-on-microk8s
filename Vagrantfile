@@ -281,6 +281,9 @@ Vagrant.configure("2") do |config|
         echo        'Get to know which components have not started yet'
         echo_yellow "  vagrant ssh -c 'watch -n 10 \"kubectl get pods -A | grep -vE \\\"Completed|([0-9]+)/\1\\\"\"'"
         echo
+        echo        'SSH into the VM (optional)'
+        echo_yellow '  vagrant ssh'
+        echo
         echo        'Login to Cloud Foundry:'
         echo_yellow "  cf login --skip-ssl-validation -a api.$MICROK8S_IP.nip.io -u admin -p \"$admin_pass\""
         echo
