@@ -270,6 +270,7 @@ Vagrant.configure("2") do |config|
         # Install Eirini
         helm repo add bits https://cloudfoundry-incubator.github.io/bits-service-release/helm
         git clone https://github.com/cloudfoundry-incubator/eirini-release && git -C "eirini-release" checkout "$EIRINI_VERSION"
+        git -C "eirini-release" revert -n 6be5d27a  # FIXME: Remove this when the following PR is merged https://github.com/cloudfoundry-incubator/eirini-release/pull/179
         helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "bits.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "bits.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}"
       }
 
