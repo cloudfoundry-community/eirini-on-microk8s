@@ -162,7 +162,7 @@ Vagrant.configure("2") do |config|
         local enable_rbac=$1
 
         # Start microk8s
-        microk8s.start
+        retry 3 microk8s.start
 
         # Enable dns, storage, metrics-server, helm
         microk8s.enable dns
