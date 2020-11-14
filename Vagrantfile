@@ -8,7 +8,7 @@
 # Notes:
 # - Make sure `VBoxHeadless` process is not swapping out. If it does try to lower the requested memory for the VM.
 
-eirini_version = "master"
+eirini_version = "98bd891"
 microk8s_ip = "192.168.51.101"
 k8s_version = "1.19/stable"
 vagrant_vm_box = "ubuntu/focal64"
