@@ -10,7 +10,7 @@
 
 eirini_version = "98bd891"
 microk8s_ip = "192.168.51.101"
-k8s_version = "1.19/stable"
+k8s_version = "1.21/stable"
 vagrant_vm_box = "ubuntu/focal64"
 dns_forwarders = ["10.0.2.3"]    # ["8.8.8.8", "8.8.4.4"]
 enable_rbac = true
