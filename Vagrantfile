@@ -226,9 +226,13 @@ Vagrant.configure("2") do |config|
         helm repo remove local >/dev/null || true
       }
 
+      clone_eirini () {
+        git clone https://github.com/cloudfoundry-incubator/eirini-release && git -C "eirini-release" checkout "$EIRINI_VERSION"
+      }
+
       prepare_values_for_eirini () {
         # Get values.yaml and replace placeholders
-        curl -s https://raw.githubusercontent.com/cloudfoundry-incubator/eirini-release/master/values.yaml -o values.yaml
+        cp eirini-release/values.yaml values.yaml
         sed -i "s/<worker-node-ip>/$MICROK8S_IP/g
                 s/<persistent-storage-class>/microk8s-hostpath/g
                 s/<shared-storage-class>/microk8s-hostpath/g
@@ -255,8 +259,7 @@ Vagrant.configure("2") do |config|
 
       deploy_uaa () {
         ## Install UAA
-        helm repo add eirini https://cloudfoundry-incubator.github.io/eirini-release
-        helm install eirini/uaa --namespace uaa --name uaa --values values.yaml
+        helm install eirini-release/helm/uaa --namespace uaa --name uaa --values values.yaml
 
         # Wait for secrets to be generated
         kubectl -n uaa wait jobs.batch --all --for condition=Complete --timeout=1h
@@ -271,7 +274,6 @@ Vagrant.configure("2") do |config|
 
         # Install Eirini
         helm repo add bits https://cloudfoundry-incubator.github.io/bits-service-release/helm
-        git clone https://github.com/cloudfoundry-incubator/eirini-release && git -C "eirini-release" checkout "$EIRINI_VERSION"
         helm install --dep-up eirini-release/helm/cf --namespace scf --name scf --values values.yaml --set "secrets.UAA_CA_CERT=${CA_CERT}" --set "bits.secrets.BITS_TLS_KEY=${BITS_TLS_KEY}" --set "bits.secrets.BITS_TLS_CRT=${BITS_TLS_CRT}"
       }
 
@@ -301,6 +303,7 @@ Vagrant.configure("2") do |config|
         cd "$EIRINI_DIR"
         run_once configure_dns_forwarders
         run_once helm_init "$ENABLE_RBAC"
+        run_once clone_eirini
         run_once prepare_values_for_eirini
         run_once deploy_uaa
         run_once deploy_eirini
