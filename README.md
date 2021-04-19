@@ -1,6 +1,13 @@
 # eirini-on-microk8s
 Vagrantfile for Eirini on microk8s is an easy way to get Cloud Foundry running on top of Kubernetes in a single VM running on your PC ([microk8s](https://microk8s.io) + [SCF](https://github.com/SUSE/scf) + [Eirini](https://github.com/cloudfoundry-incubator/eirini-release))
 
+# NOTE
+eirini_version is currently pointing to the last known working version before SCF was dropped from eirini-release
+
+# WARNING
+The setup is broken since when eirinifs was moved to [attic](https://github.com/cloudfoundry-attic/eirinifs).
+Temporary fix would be adding `-L` to `curl` [here](https://github.com/cloudfoundry-incubator/bits-service-release/blob/99e4b0b/docker/eirini-rootfs-downloader/eirini-rootfs-downloader.sh#L62). Proper fix will be switching to KubeCF.
+
 # How to use
 ## Setting up
 ```
