@@ -6,7 +6,7 @@ eirini_version is currently pointing to the last known working version before SC
 
 # WARNING
 The setup is broken since when eirinifs was moved to [attic](https://github.com/cloudfoundry-attic/eirinifs).
-Temporary fix would be adding `-L` to `curl` [here](https://github.com/cloudfoundry-incubator/bits-service-release/blob/99e4b0b/docker/eirini-rootfs-downloader/eirini-rootfs-downloader.sh#L62). Proper fix will be switching to KubeCF.
+Temporary fix would be adding `-L` to `curl` [here](https://github.com/cloudfoundry-incubator/bits-service-release/blob/99e4b0b/docker/eirini-rootfs-downloader/eirini-rootfs-downloader.sh#L62). Proper fix will be switching to KubeCF or cf-for-k8s.
 
 # How to use
 ## Setting up
